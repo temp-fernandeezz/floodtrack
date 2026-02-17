@@ -9,3 +9,10 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Leaflet + Tailwind fix (Tailwind limita img e quebra tiles) */
+.leaflet-container img.leaflet-tile {
+    max-width: none !important;
+    width: 256px !important;
+    height: 256px !important;
+  }
