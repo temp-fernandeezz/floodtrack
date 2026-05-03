@@ -6,13 +6,14 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use App\Models\NewsArticle;
 use App\Models\FloodPoint;
+use App\Settings\FloodTrackScraperSettings;
 
 class FetchFloodNews extends Command
 {
     protected $signature = 'flood:fetch-news';
     protected $description = 'Busca noticias do G1 sobre alagamentos e cria pontos sugeridos';
 
-    public function handle()
+    public function handle(FloodTrackScraperSettings $scraperSettings)
     {
         $rssUrl = 'https://g1.globo.com/rss/g1/sp'; // feed geral SP
         $keywords = ['alagamento', 'alagamentos', 'enchente', 'enchentes', 'inundação', 'chuva forte', 'deslizamento'];
@@ -41,8 +42,7 @@ class FetchFloodNews extends Command
             $desc  = strip_tags((string) $item->description);
             $pub   = isset($item->pubDate) ? new \DateTime((string) $item->pubDate) : null;
 
-            // Filtro por região (Vale do Paraíba)
-            if (! str_contains($link, '/sp/vale-do-paraiba-regiao/')) {
+            if (! $this->isAllowedBySettings($link, $scraperSettings)) {
                 continue;
             }
 
@@ -76,11 +76,10 @@ class FetchFloodNews extends Command
 
             FloodPoint::create([
                 'cidade' => $cidade ?? 'Indefinido',
-                'uf' => $uf,
+                'uf' => $uf ?? 'SP', // fallback (rss é SP)
                 'bairro' => $bairro,
                 'logradouro' => null,
 
-                // sem coordenadas quando a notícia não traz endereço
                 'latitude' => null,
                 'longitude' => null,
 
@@ -89,7 +88,6 @@ class FetchFloodNews extends Command
                 'descricao' => $title,
                 'data_ocorrencia' => $article->published_at,
 
-                // novos campos (se você já criou as colunas)
                 'source_type' => 'news',
                 'source_url' => $link,
                 'review_status' => 'pending',
@@ -102,6 +100,58 @@ class FetchFloodNews extends Command
 
         $this->info("Concluído! {$imported} notícia(s) importadas.");
         return self::SUCCESS;
+    }
+
+    private function isAllowedBySettings(string $url, FloodTrackScraperSettings $settings): bool
+    {
+        // 1) Domínio
+        $allowedDomains = $settings->allowed_domains ?? [];
+        if (! empty($allowedDomains)) {
+            $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+
+            $okDomain = false;
+            foreach ($allowedDomains as $domain) {
+                $domain = strtolower($domain);
+                if ($host === $domain || str_ends_with($host, '.' . $domain)) {
+                    $okDomain = true;
+                    break;
+                }
+            }
+
+            if (! $okDomain) {
+                return false;
+            }
+        }
+
+        // 2) Patterns por estado (ativos)
+        $states = array_values(array_filter($settings->observed_states ?? [], fn ($s) => ($s['enabled'] ?? true) === true));
+
+        if (empty($states)) {
+            return true;
+        }
+
+        foreach ($states as $state) {
+            $allowed = $state['allowed_patterns'] ?? [];
+            $deny = $state['deny_patterns'] ?? [];
+
+            // deny tem prioridade
+            foreach ($deny as $pattern) {
+                if ($pattern && str_contains($url, $pattern)) {
+                    continue 2;
+                }
+            }
+
+            // se tiver allow, precisa bater em algum
+            if (! empty($allowed)) {
+                foreach ($allowed as $pattern) {
+                    if ($pattern && str_contains($url, $pattern)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private function containsAny(string $text, array $keywords): bool
@@ -134,16 +184,15 @@ class FetchFloodNews extends Command
             $confidence = 55;
         }
 
-        // UF (pelo link: /sp/, /rj/, /mg/...)
+        // UF (pelo link: /sp/, /rj/, /mg/...) - no rss SP, tende a ser SP
         $uf = $this->inferUfFromG1Url($url);
         if ($uf) $confidence += 10;
 
-        // Bairro + Cidade (padrão G1 comum: "no Bairro X, em Cidade Y")
+        // Bairro + Cidade
         [$bairro, $cidade] = $this->inferBairroCidadeFromText($title);
 
-        // Fallback: tentar achar cidade no texto completo
+        // Fallback
         if (! $cidade) {
-            // pega o ÚLTIMO "em Cidade"
             if (preg_match_all('/\bem\s+([A-Za-zÀ-ÖØ-öø-ÿ]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]+)*)\b/u', $text, $all) && !empty($all[1])) {
                 $cidade = trim(end($all[1]));
             }
@@ -160,14 +209,11 @@ class FetchFloodNews extends Command
         $path = parse_url($url, PHP_URL_PATH) ?? '';
         $segments = array_values(array_filter(explode('/', $path)));
 
-        // Ex.: /sp/vale-do-paraiba-regiao/noticia/...
         $uf = $segments[0] ?? null;
-
         if (! $uf) return null;
 
         $uf = strtoupper($uf);
 
-        // valida: 2 letras
         if (preg_match('/^[A-Z]{2}$/', $uf)) return $uf;
 
         return null;
@@ -175,18 +221,15 @@ class FetchFloodNews extends Command
 
     private function inferBairroCidadeFromText(string $title): array
     {
-        // Ex.: "Solo cede ... no Jardim São José II, em São José dos Campos"
         $bairro = null;
         $cidade = null;
 
-        // bairro: "no|na|em <bairro>, em <cidade>"
         if (preg_match('/\b(?:no|na|em)\s+([^,]+),\s+em\s+([^,]+)\b/iu', $title, $m)) {
             $bairro = trim($m[1]);
             $cidade = trim($m[2]);
             return [$bairro, $cidade];
         }
 
-        // só cidade: ", em <cidade>" (pega o último)
         if (preg_match_all('/,\s+em\s+([^,]+)\b/iu', $title, $m) && !empty($m[1])) {
             $cidade = trim(end($m[1]));
         }

@@ -92,3 +92,4 @@ Alpine.start()
 document.addEventListener('DOMContentLoaded', () => {
   initFloodMap()
 })
+

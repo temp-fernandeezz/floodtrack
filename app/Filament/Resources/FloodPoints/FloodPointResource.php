@@ -18,6 +18,10 @@ class FloodPointResource extends Resource
 {
     protected static ?string $model = FloodPoint::class;
 
+    protected static ?string $title = 'Configuração do Scraper';
+
+    protected static ?string $navigationLabel = 'Pontos de inundação';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function form(Schema $schema): Schema
