@@ -75,6 +75,7 @@ class FloodPointPublicController extends Controller
 
     public function apiPending(Request $request)
     {
+        // Mostra todos os pontos sem coordenadas, aprovados ou pendentes de revisão
         $query = FloodPoint::query()
             ->where(function ($q) {
                 $q->whereNull('latitude')
@@ -82,10 +83,6 @@ class FloodPointPublicController extends Controller
                     ->orWhere('latitude', 0)
                     ->orWhere('longitude', 0);
             });
-
-        if (Schema::hasColumn('flood_points', 'review_status')) {
-            $query->where('review_status', 'approved');
-        }
 
         $columns = ['id', 'cidade', 'bairro', 'logradouro', 'nivel', 'status', 'descricao', 'data_ocorrencia'];
 

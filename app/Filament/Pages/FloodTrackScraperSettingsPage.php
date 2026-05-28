@@ -12,7 +12,6 @@ use Filament\Pages\SettingsPage;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Flood;
 
 class FloodTrackScraperSettingsPage extends SettingsPage
 {
@@ -28,6 +27,22 @@ class FloodTrackScraperSettingsPage extends SettingsPage
     {
         return $schema
             ->components([
+                Section::make('RSS Monitorados')
+                    ->description('Cadastre os feeds RSS que o scraper deve consultar.')
+                    ->schema([
+                        Repeater::make('rss_urls')
+                            ->schema([
+                                TextInput::make('url')
+                                    ->label('URL do RSS')
+                                    ->placeholder('https://g1.globo.com/rss/g1/sp')
+                                    ->url()
+                                    ->required(),
+                            ])
+                            ->addActionLabel('Adicionar RSS')
+                            ->reorderable()
+                            ->itemLabel(fn ($state) => $state['url'] ?? 'RSS'),
+                    ]),
+
                 Section::make('Domínios Permitidos')
                     ->description('Se preenchido, o scraper aceitará apenas links desses domínios.')
                     ->schema([
@@ -40,7 +55,7 @@ class FloodTrackScraperSettingsPage extends SettingsPage
                             ])
                             ->addActionLabel('Adicionar domínio')
                             ->reorderable()
-                            ->itemLabel(fn($state) => $state['value'] ?? 'Domínio'),
+                            ->itemLabel(fn ($state) => $state['value'] ?? 'Domínio'),
                     ]),
 
                 Section::make('Estados Observados')
@@ -115,28 +130,65 @@ class FloodTrackScraperSettingsPage extends SettingsPage
                             ->addActionLabel('Adicionar Estado')
                             ->reorderable()
                             ->collapsible()
-                            ->itemLabel(fn($state) => ($state['state'] ?? 'Estado')),
-                    ]),
+
+                            ->itemLabel(fn ($state) => $state['state'] ?? 'Estado'),
+                    ])->ColumnSpan('full'),
             ]);
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // allowed_domains -> transforma string em ['value' => string]
-        $data['allowed_domains'] = collect($data['allowed_domains'] ?? [])
-            ->map(fn($domain) => ['value' => $domain])
+        $data['rss_urls'] = collect($data['rss_urls'] ?? [])
+            ->map(fn ($url) => ['url' => $url])
             ->toArray();
 
-        // observed_states
+        $data['allowed_domains'] = collect($data['allowed_domains'] ?? [])
+            ->map(fn ($domain) => ['value' => $domain])
+            ->toArray();
+
         $data['observed_states'] = collect($data['observed_states'] ?? [])
             ->map(function ($state) {
-
                 $state['allowed_patterns'] = collect($state['allowed_patterns'] ?? [])
-                    ->map(fn($pattern) => ['pattern' => $pattern])
+                    ->map(fn ($pattern) => ['pattern' => $pattern])
                     ->toArray();
 
                 $state['deny_patterns'] = collect($state['deny_patterns'] ?? [])
-                    ->map(fn($pattern) => ['pattern' => $pattern])
+                    ->map(fn ($pattern) => ['pattern' => $pattern])
+                    ->toArray();
+
+                return $state;
+            })
+            ->toArray();
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['rss_urls'] = collect($data['rss_urls'] ?? [])
+            ->pluck('url')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $data['allowed_domains'] = collect($data['allowed_domains'] ?? [])
+            ->pluck('value')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $data['observed_states'] = collect($data['observed_states'] ?? [])
+            ->map(function ($state) {
+                $state['allowed_patterns'] = collect($state['allowed_patterns'] ?? [])
+                    ->pluck('pattern')
+                    ->filter()
+                    ->values()
+                    ->toArray();
+
+                $state['deny_patterns'] = collect($state['deny_patterns'] ?? [])
+                    ->pluck('pattern')
+                    ->filter()
+                    ->values()
                     ->toArray();
 
                 return $state;
