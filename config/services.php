@@ -39,4 +39,13 @@ return [
         'key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    'openweathermap' => [
+        'key' => env('OPENWEATHERMAP_API_KEY'),
+    ],
+
+    'recaptcha' => [
+        'site_key' => env('GOOGLE_RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('GOOGLE_RECAPTCHA_SECRET_KEY'),
+    ],
+
 ];

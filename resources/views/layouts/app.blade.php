@@ -5,6 +5,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#09090b">
+    <meta name="color-scheme" content="dark">
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <title>@yield('title', 'FloodTrack') — Mapa de alagamentos urbanos</title>
 
@@ -23,16 +29,21 @@
     {{-- Extra meta por página (ex.: noindex em pontos pendentes) --}}
     @stack('seo')
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Scripts extras por página (ex.: reCAPTCHA só em /reportar) --}}
+    @stack('scripts')
 </head>
 
-<body>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+    <a href="#conteudo-principal"
+        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[999999999999] focus:rounded-xl focus:bg-violet-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">
+        Pular para o conteúdo
+    </a>
+
     <x-header />
 
-    <main class="mx-auto max-w-[1600px] px-4 py-6 lg:px-8">
+    <main id="conteudo-principal" class="mx-auto max-w-[1600px] px-4 py-6 lg:px-8">
         @yield('content')
     </main>
 

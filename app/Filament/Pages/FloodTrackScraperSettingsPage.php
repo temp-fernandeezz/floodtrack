@@ -27,8 +27,27 @@ class FloodTrackScraperSettingsPage extends SettingsPage
     {
         return $schema
             ->components([
+                Section::make('Expiração e Deduplicação')
+                    ->description('Controla quando um ponto "sai do ar" e quando duas notícias são tratadas como o mesmo evento.')
+                    ->schema([
+                        TextInput::make('expira_after_hours')
+                            ->label('Expira após (horas)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->required()
+                            ->helperText('Pontos ativos com ocorrência mais antiga que isso passam a "resolvido" e somem do mapa (mas continuam disponíveis para exportação).'),
+
+                        TextInput::make('dedup_window_hours')
+                            ->label('Janela de deduplicação (horas)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->required()
+                            ->helperText('Notícias novas sobre a mesma cidade/bairro dentro dessa janela são consolidadas no ponto existente em vez de criar um novo.'),
+                    ])
+                    ->columns(2),
+
                 Section::make('RSS Monitorados')
-                    ->description('Cadastre os feeds RSS que o scraper deve consultar.')
+                    ->description('Cadastre os feeds RSS que o scraper deve consultar. Sugestões de feeds regionais do G1: https://g1.globo.com/rss/g1/sp/, https://g1.globo.com/rss/g1/rj/, https://g1.globo.com/rss/g1/mg/ (verificados e válidos).')
                     ->schema([
                         Repeater::make('rss_urls')
                             ->schema([

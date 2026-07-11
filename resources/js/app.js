@@ -80,12 +80,44 @@ Alpine.data('pendingSwiper', (apiUrl) => ({
 
     badgeClass(nivel) {
       const n = (nivel || '').toLowerCase()
-      if (n === 'alto') return 'border-red-200 bg-red-50 text-red-700'
-      if (n === 'medio') return 'border-yellow-200 bg-yellow-50 text-yellow-700'
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      if (n === 'alto') return 'border-red-800 bg-red-950 text-red-300'
+      if (n === 'medio') return 'border-yellow-800 bg-yellow-950 text-yellow-300'
+      return 'border-emerald-800 bg-emerald-950 text-emerald-300'
     },
   }))
 
+
+Alpine.data('floodReport', () => ({
+  latitude: '',
+  longitude: '',
+  locating: false,
+  located: false,
+  locationError: '',
+
+  useMyLocation() {
+    if (!navigator.geolocation) {
+      this.locationError = 'Geolocalização não suportada neste navegador.'
+      return
+    }
+
+    this.locating = true
+    this.locationError = ''
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.latitude = pos.coords.latitude
+        this.longitude = pos.coords.longitude
+        this.located = true
+        this.locating = false
+      },
+      () => {
+        this.locationError = 'Não foi possível obter sua localização. Preencha a cidade manualmente.'
+        this.locating = false
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  },
+}))
 
 Alpine.start()
 

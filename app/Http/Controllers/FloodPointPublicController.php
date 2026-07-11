@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\FloodPoint;
 use App\Models\NewsArticle;
+use App\Services\FloodRiskScoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FloodPointPublicController extends Controller
 {
@@ -35,8 +37,10 @@ class FloodPointPublicController extends Controller
         return view('pages.home', compact('points'));
     }
 
-    public function stats()
+    public function stats(FloodRiskScoreService $riskScore)
     {
+        $rankingRisco = $riskScore->rankingPorCidade();
+
         $total     = FloodPoint::count();
         $comCoords = FloodPoint::whereNotNull('latitude')->whereNotNull('longitude')
             ->where('latitude', '!=', 0)->count();
@@ -74,7 +78,7 @@ class FloodPointPublicController extends Controller
         return view('pages.stats', compact(
             'total', 'comCoords', 'ativos', 'noticias',
             'porNivel', 'porUf', 'porCidade',
-            'primeira', 'ultima', 'porDia'
+            'primeira', 'ultima', 'porDia', 'rankingRisco'
         ));
     }
 
@@ -105,8 +109,14 @@ class FloodPointPublicController extends Controller
         if ($request->filled('nivel')) {
             $query->where('nivel', $request->nivel);
         }
-        if ($request->filled('status')) {
+
+        // Sem filtro explícito de status, o mapa "ao vivo" mostra só ocorrências ativas —
+        // pontos expirados (ver flood:expire-points) continuam existindo pra exportação,
+        // mas não poluem o mapa como se fossem atuais.
+        if ($request->filled('status') && $request->status !== 'todos') {
             $query->where('status', $request->status);
+        } elseif (! $request->filled('status')) {
+            $query->where('status', 'ativo');
         }
 
         $columns = ['id', 'cidade', 'bairro', 'logradouro', 'latitude', 'longitude', 'nivel', 'status', 'descricao', 'data_ocorrencia'];
@@ -136,5 +146,82 @@ class FloodPointPublicController extends Controller
         if (Schema::hasColumn('flood_points', 'confidence')) $columns[] = 'confidence';
 
         return $query->latest('data_ocorrencia')->take(30)->get($columns);
+    }
+
+    /**
+     * Exporta o histórico completo de ocorrências (inclusive expiradas/resolvidas) em CSV.
+     * Diferente do mapa "ao vivo", aqui o padrão é NÃO filtrar por status.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $query = FloodPoint::query();
+
+        if (Schema::hasColumn('flood_points', 'review_status')) {
+            $query->where('review_status', 'approved');
+        }
+
+        if ($request->filled('cidade')) {
+            $query->where('cidade', 'like', '%' . $request->cidade . '%');
+        }
+        if ($request->filled('uf')) {
+            $query->where('uf', strtoupper($request->uf));
+        }
+        if ($request->filled('nivel')) {
+            $query->where('nivel', $request->nivel);
+        }
+        if ($request->filled('status') && $request->status !== 'todos') {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('data_inicio')) {
+            $query->whereDate('data_ocorrencia', '>=', $request->data_inicio);
+        }
+        if ($request->filled('data_fim')) {
+            $query->whereDate('data_ocorrencia', '<=', $request->data_fim);
+        }
+
+        $filename = 'floodtrack-ocorrencias-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($query) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, [
+                'ID', 'Cidade', 'UF', 'Bairro', 'Logradouro', 'Latitude', 'Longitude',
+                'Nível', 'Status', 'Descrição', 'Data Ocorrência', 'Fontes Consolidadas',
+                'Tipo de Fonte', 'URL da Fonte', 'Confiança', 'Criado em',
+            ]);
+
+            $query->orderBy('data_ocorrencia')->chunk(500, function ($chunk) use ($out) {
+                foreach ($chunk as $p) {
+                    fputcsv($out, [
+                        $p->id, $p->cidade, $p->uf, $p->bairro, $p->logradouro,
+                        $p->latitude, $p->longitude, $p->nivel, $p->status, $p->descricao,
+                        $p->data_ocorrencia, $p->merged_sources_count ?? 1,
+                        $p->source_type, $p->source_url, $p->confidence, $p->created_at,
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Exporta o ranking de risco histórico por cidade em CSV.
+     */
+    public function exportRisk(FloodRiskScoreService $riskScore): StreamedResponse
+    {
+        $ranking  = $riskScore->rankingPorCidade(limit: 1000);
+        $filename = 'floodtrack-ranking-risco-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($ranking) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Cidade', 'UF', 'Ocorrências (90 dias)', 'Pontuação (0-100)', 'Nível de Risco']);
+
+            foreach ($ranking as $row) {
+                fputcsv($out, [$row->cidade, $row->uf, $row->ocorrencias, $row->score, $row->nivel_risco]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }

@@ -71,9 +71,12 @@ class FetchFloodNews extends Command
                     sourceType: 'news',
                     sourceUrl: $item->link,
                     publishedAt: $article->published_at,
+                    dedupWindowHours: $scraperSettings->dedup_window_hours,
                 );
 
-                if ($floodPoint->review_status === 'approved') {
+                if (! $floodPoint->wasRecentlyCreated) {
+                    $this->info("Consolidado em ponto existente #{$floodPoint->id} ({$floodPoint->merged_sources_count} fontes): {$item->title}");
+                } elseif ($floodPoint->review_status === 'approved') {
                     $imported++;
                     $this->info("Importado: {$item->title}");
                 } else {

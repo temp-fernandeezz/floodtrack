@@ -1,3 +1,18 @@
+import L from 'leaflet'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+
+// Leaflet sempre concatena um "imagePath" auto-detectado (via <link href="leaflet.css">)
+// na frente da URL do ícone — quebra ao empacotar via Vite (CSS é inlined, sem link tag).
+// `delete _getIconUrl` remove esse comportamento e faz usar iconUrl/shadowUrl diretamente.
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+})
+
 function toNumber(v) {
     const n = Number(v)
     return Number.isFinite(n) ? n : null
@@ -23,6 +38,30 @@ function toNumber(v) {
     `
   }
 
+  async function updateRainWidget(lat, lng) {
+    const widget = document.getElementById('rain-widget')
+    if (!widget) return
+
+    try {
+      const res = await fetch(`/api/chuva?lat=${lat}&lng=${lng}`, { headers: { Accept: 'application/json' } })
+
+      if (res.status !== 200) {
+        widget.classList.add('hidden')
+        widget.classList.remove('flex')
+        return
+      }
+
+      const data = await res.json()
+      document.getElementById('rain-widget-mm').textContent = `${data.mm_recente} mm`
+      document.getElementById('rain-widget-local').textContent = data.local ? `(${data.local})` : ''
+      widget.classList.remove('hidden')
+      widget.classList.add('flex')
+    } catch {
+      widget.classList.add('hidden')
+      widget.classList.remove('flex')
+    }
+  }
+
   function buildUrl(baseUrl, filters = {}) {
     const url = new URL(baseUrl, window.location.origin)
     Object.entries(filters).forEach(([k, v]) => {
@@ -42,19 +81,14 @@ function toNumber(v) {
     const defaultLng = toNumber(el.dataset.defaultLng) ?? -45.8841
     const defaultZoom = toNumber(el.dataset.defaultZoom) ?? 10
 
-    if (typeof window.L === 'undefined') {
-      console.error('Leaflet (L) não carregou. Verifique o script no layout.')
-      return
-    }
+    const map = L.map(el).setView([defaultLat, defaultLng], defaultZoom)
 
-    const map = window.L.map(el).setView([defaultLat, defaultLng], defaultZoom)
-
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '&copy; OpenStreetMap',
     }).addTo(map)
 
-    const markersLayer = window.L.layerGroup().addTo(map)
+    const markersLayer = L.layerGroup().addTo(map)
 
     async function render(filters = {}) {
       const url = buildUrl(baseApiUrl, filters)
@@ -75,7 +109,7 @@ function toNumber(v) {
 
         bounds.push([lat, lng])
 
-        window.L.marker([lat, lng]).addTo(markersLayer).bindPopup(buildPopup(p))
+        L.marker([lat, lng]).addTo(markersLayer).bindPopup(buildPopup(p))
       }
 
       // enquadra
@@ -92,5 +126,13 @@ function toNumber(v) {
     // ouve filtros do Alpine
     window.addEventListener('flood:filters', async (e) => {
       await render(e.detail || {})
+    })
+
+    // chuva na região — atualiza no centro atual e quando o usuário move o mapa
+    const center = map.getCenter()
+    await updateRainWidget(center.lat, center.lng)
+    map.on('moveend', () => {
+      const c = map.getCenter()
+      updateRainWidget(c.lat, c.lng)
     })
   }

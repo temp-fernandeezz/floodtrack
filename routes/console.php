@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('flood:fetch-news')->everyTenMinutes()->withoutOverlapping();
+Schedule::command('flood:expire-points')->hourly()->withoutOverlapping();
 

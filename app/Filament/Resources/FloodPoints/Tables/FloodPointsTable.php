@@ -30,6 +30,20 @@ class FloodPointsTable
                         'medio' => 'warning',
                         default => 'success',
                     }),
+                TextColumn::make('source_type')
+                    ->label('Origem')
+                    ->badge()
+                    ->sortable()
+                    ->color(fn (string $state) => match ($state) {
+                        'citizen' => 'info',
+                        'news'    => 'gray',
+                        default   => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'citizen' => 'Reporte cidadão',
+                        'news'    => 'Notícia',
+                        default   => 'Manual',
+                    }),
                 TextColumn::make('review_status')
                     ->label('Revisão')
                     ->badge()
@@ -64,6 +78,13 @@ class FloodPointsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                SelectFilter::make('source_type')
+                    ->label('Origem')
+                    ->options([
+                        'citizen' => 'Reporte cidadão',
+                        'news'    => 'Notícia',
+                        'manual'  => 'Manual',
+                    ]),
                 SelectFilter::make('review_status')
                     ->label('Revisão')
                     ->options([
