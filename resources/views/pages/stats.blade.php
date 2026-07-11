@@ -8,6 +8,7 @@
 @endpush
 
 @section('content')
+    <div class="mx-auto max-w-6xl">
     {{-- Cabeçalho --}}
     <div class="mb-6 flex items-start justify-between gap-4 print:mb-4">
         <div>
@@ -205,6 +206,7 @@
     {{-- Rodapé de impressão --}}
     <div class="mt-4 hidden text-center text-xs text-zinc-400 print:block">
         FloodTrack · {{ config('app.url') }} · Gerado em {{ now()->format('d/m/Y H:i') }}
+    </div>
     </div>
 @endsection
 

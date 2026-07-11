@@ -1,5 +1,5 @@
 <header class="sticky top-0 z-[9999999999] border-b border-white/10 bg-zinc-950/70 backdrop-blur">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+    <div class="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4 lg:px-8">
         <a href="{{ route('home') }}" class="flex items-center gap-2">
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600/20 ring-1 ring-violet-500/30">
                 🌧️
@@ -48,7 +48,7 @@
         x-transition
         @click.outside="$store.ui.mobileMenuOpen = false"
         class="border-t border-white/10 bg-zinc-950/90 md:hidden">
-        <div class="mx-auto grid max-w-6xl gap-2 px-4 py-3">
+        <div class="mx-auto grid max-w-[1600px] gap-2 px-4 py-3 lg:px-8">
             <a href="{{ route('home') }}" class="rounded-xl px-3 py-2 text-sm text-zinc-200 hover:bg-white/5">
                 Mapa
             </a>

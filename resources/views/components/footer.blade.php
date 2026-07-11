@@ -1,5 +1,5 @@
 <footer class="border-t border-white/10 py-8">
-    <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between">
+    <div class="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between lg:px-8">
         <div class="text-xs text-zinc-500">
             <div class="font-semibold text-zinc-300">FloodTrack</div>
             <div>Projeto de TCC • Monitoramento de pontos de alagamento</div>

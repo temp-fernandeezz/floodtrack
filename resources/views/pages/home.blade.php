@@ -4,7 +4,7 @@
 @section('description', 'Visualize os pontos de alagamento urbano detectados por notícias. Filtre por cidade, bairro e nível de severidade e acompanhe ocorrências em tempo real.')
 
 @section('content')
-    <section class="mx-auto max-w-6xl">
+    <section class="mx-auto max-w-full">
         <div x-data="window.floodHome()" class="space-y-5">
             <div class="space-y-1">
                 <h1 class="text-3xl font-semibold text-black">
@@ -78,7 +78,7 @@
             </div>
 
             <!-- Mapa -->
-            <div id="map" class="h-[72vh] w-full overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-200"
+            <div id="map" class="h-[70vh] min-h-[480px] w-full overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-200 lg:h-[78vh] xl:h-[82vh]"
                 data-api-url="{{ route('flood-points.api') }}" data-default-lat="-23.1896" data-default-lng="-45.8841"
                 data-default-zoom="10"></div>
         </div>
