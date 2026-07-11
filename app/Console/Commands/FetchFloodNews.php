@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\FloodPoint;
 use App\Models\NewsArticle;
 use App\Services\GeocodingService;
+use App\Services\LocationExtractorService;
 use App\Settings\FloodTrackScraperSettings;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -18,7 +19,8 @@ class FetchFloodNews extends Command
 
     public function handle(
         FloodTrackScraperSettings $scraperSettings,
-        GeocodingService $geocodingService
+        GeocodingService $geocodingService,
+        LocationExtractorService $locationExtractor
     ) {
         $rssUrls = $scraperSettings->rss_urls ?: [
             'https://g1.globo.com/rss/g1/',
@@ -88,11 +90,12 @@ class FetchFloodNews extends Command
                     'raw'          => json_encode($item),
                 ]);
 
-                // 3. Extração de localização
+                // 3. Extração de localização (IA com fallback para regex)
                 [$bairro, $cidade, $uf, $nivel, $confidence] = $this->extractLocationAndSeverity(
                     title: $title,
                     summary: $desc,
-                    url: $link
+                    url: $link,
+                    locationExtractor: $locationExtractor
                 );
 
                 $cidade = $this->cleanLocationName($cidade);
@@ -282,12 +285,16 @@ class FetchFloodNews extends Command
         return false;
     }
 
-    private function extractLocationAndSeverity(string $title, string $summary, string $url): array
-    {
+    private function extractLocationAndSeverity(
+        string $title,
+        string $summary,
+        string $url,
+        ?LocationExtractorService $locationExtractor = null
+    ): array {
         $text  = trim($title . ' ' . $summary);
         $lower = mb_strtolower($text);
 
-        // Nível de severidade
+        // Nível base e confiança (usados pelo fallback regex e como base para IA)
         $nivel      = 'medio';
         $confidence = 40;
 
@@ -302,11 +309,32 @@ class FetchFloodNews extends Command
             $confidence = 55;
         }
 
-        // UF: primeiro da URL, depois do texto
-        $uf = $this->inferUfFromG1Url($url) ?? $this->inferUfFromText($text);
+        // UF da URL é muito confiável para feeds do G1 — extraímos antes da IA
+        $ufFromUrl = $this->inferUfFromG1Url($url);
+
+        // --- Estratégia 1: extração via IA (Claude Haiku) ---
+        if ($locationExtractor) {
+            $ai = $locationExtractor->extract($title, $summary);
+
+            if ($ai && $ai['cidade']) {
+                $cidade = $ai['cidade'];
+                $bairro = $ai['bairro'];
+                // UF da URL tem prioridade — é mais confiável que a IA para feeds regionais
+                $uf     = $ufFromUrl ?? $ai['uf'] ?? $this->inferUfFromText($text);
+                $nivel  = $ai['nivel'] ?? $nivel;
+
+                // IA bem-sucedida: confiança alta
+                $confidence = min(100, $confidence + 30);
+                if ($bairro) $confidence = min(100, $confidence + 10);
+
+                return [$bairro, $cidade, $uf, $nivel, $confidence];
+            }
+        }
+
+        // --- Estratégia 2: fallback — regex clássico ---
+        $uf = $ufFromUrl ?? $this->inferUfFromText($text);
         if ($uf) $confidence += 10;
 
-        // Cidade e bairro: múltiplas estratégias
         [$bairro, $cidade] = $this->inferBairroCidadeFromText($title);
 
         if (! $cidade) {

@@ -17,9 +17,9 @@
                 Mapa
             </a>
 
-            <a href="#"
+            <a href="{{ route('stats') }}"
                class="rounded-xl px-3 py-2 text-sm text-zinc-300 hover:bg-white/5">
-                Sobre
+                Estatísticas
             </a>
 
             <button
@@ -52,8 +52,8 @@
             <a href="{{ route('home') }}" class="rounded-xl px-3 py-2 text-sm text-zinc-200 hover:bg-white/5">
                 Mapa
             </a>
-            <a href="#" class="rounded-xl px-3 py-2 text-sm text-zinc-200 hover:bg-white/5">
-                Sobre
+            <a href="{{ route('stats') }}" class="rounded-xl px-3 py-2 text-sm text-zinc-200 hover:bg-white/5">
+                Estatísticas
             </a>
             <button
                 type="button"

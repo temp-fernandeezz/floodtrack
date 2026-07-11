@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Mapa de alagamentos')
+@section('description', 'Visualize os pontos de alagamento urbano detectados por notícias. Filtre por cidade, bairro e nível de severidade e acompanhe ocorrências em tempo real.')
+
 @section('content')
     <section class="mx-auto max-w-6xl">
         <div x-data="window.floodHome()" class="space-y-5">
