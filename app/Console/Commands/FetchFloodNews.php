@@ -8,6 +8,7 @@ use App\Services\FloodNews\FloodNewsRelevanceFilter;
 use App\Services\FloodNews\FloodPointImporter;
 use App\Services\FloodNews\NewsItem;
 use App\Services\FloodNews\RssFeedFetcher;
+use App\Services\ScraperHealthRecorder;
 use App\Settings\FloodTrackScraperSettings;
 use Illuminate\Console\Command;
 
@@ -27,10 +28,12 @@ class FetchFloodNews extends Command
         FloodNewsRelevanceFilter $relevanceFilter,
         FloodLocationParser $locationParser,
         FloodPointImporter $importer,
+        ScraperHealthRecorder $healthRecorder,
     ): int {
         $rssUrls = $scraperSettings->rss_urls ?: self::DEFAULT_RSS_URLS;
 
         $imported = 0;
+        $totalItemsSeen = 0;
 
         foreach ($rssUrls as $rssUrl) {
             $this->info("Buscando RSS: {$rssUrl}");
@@ -43,6 +46,8 @@ class FetchFloodNews extends Command
             }
 
             foreach ($items as $item) {
+                $totalItemsSeen++;
+
                 if (! $relevanceFilter->isAllowedBySettings($item->link, $scraperSettings)) {
                     continue;
                 }
@@ -84,6 +89,8 @@ class FetchFloodNews extends Command
                 }
             }
         }
+
+        $healthRecorder->recordFetch($imported, $totalItemsSeen);
 
         $this->info("Concluído! {$imported} notícia(s) com coordenadas importadas.");
 

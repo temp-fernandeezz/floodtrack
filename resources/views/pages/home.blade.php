@@ -19,13 +19,13 @@
             <!-- Filtros -->
             <form @submit.prevent="applyFilters()" class="grid gap-3 rounded-2xl bg-zinc-900 p-4 shadow-sm ring-1 ring-zinc-800 md:grid-cols-12">
                 <div class="md:col-span-5">
-                    <label for="filtro-cidade" class="mb-1 block text-xs font-medium text-zinc-400">Cidade</label>
+                    <label for="filtro-cidade" class="mb-1 block pl-0.75 text-xs font-medium text-zinc-400">Cidade</label>
                     <input id="filtro-cidade" x-model="filters.cidade" type="text" placeholder="Ex.: São José dos Campos"
                         class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
                 </div>
 
                 <div class="md:col-span-3">
-                    <label for="filtro-nivel" class="mb-1 block text-xs font-medium text-zinc-400">Nível</label>
+                    <label for="filtro-nivel" class="mb-1 block text-xs pl-0.75 font-medium text-zinc-400">Nível</label>
                     <select id="filtro-nivel" x-model="filters.nivel"
                         class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
                         <option value="">Todos</option>
@@ -36,7 +36,7 @@
                 </div>
 
                 <div class="md:col-span-2">
-                    <label for="filtro-status" class="mb-1 block text-xs font-medium text-zinc-400">Status</label>
+                    <label for="filtro-status" class="mb-1 block text-xs pl-0.75 font-medium text-zinc-400">Status</label>
                     <select id="filtro-status" x-model="filters.status"
                         class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
                         <option value="">Ativos (padrão)</option>
@@ -92,7 +92,7 @@
     </section>
 
     <section x-data="pendingSwiper('{{ route('flood-points.apiPending') }}')" x-init="init()" class="mt-8 space-y-3">
-        <div class="flex items-end justify-between gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-white">Ocorrências sem localização</h2>
                 <p class="text-sm text-zinc-400">
@@ -100,19 +100,21 @@
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between gap-2 sm:justify-end">
                 <span class="text-xs text-zinc-500" x-text="metaText"></span>
 
-                <button type="button"
-                    class="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50"
-                    @click="prev()" :disabled="loading" aria-label="Ver ocorrências anteriores">
-                    ←
-                </button>
-                <button type="button"
-                    class="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50"
-                    @click="next()" :disabled="loading" aria-label="Ver próximas ocorrências">
-                    →
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                        class="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50"
+                        @click="prev()" :disabled="loading" aria-label="Ver ocorrências anteriores">
+                        ←
+                    </button>
+                    <button type="button"
+                        class="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50"
+                        @click="next()" :disabled="loading" aria-label="Ver próximas ocorrências">
+                        →
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -136,7 +138,7 @@
                 style="-webkit-overflow-scrolling: touch;">
                 <template x-for="item in items" :key="item.id">
                     <article
-                        class="min-w-[280px] max-w-[280px] snap-start rounded-2xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm">
+                        class="min-w-[85vw] max-w-[85vw] snap-start rounded-2xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm sm:min-w-[280px] sm:max-w-[280px]">
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <div class="text-sm font-semibold text-zinc-100" x-text="formatPlace(item)">

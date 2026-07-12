@@ -24,9 +24,9 @@ window.floodHome = function () {
 
 Alpine.store('ui', {
   mobileMenuOpen: false,
-  legendOpen: false,
-  toggleLegend() {
-    this.legendOpen = !this.legendOpen
+  aboutOpen: false,
+  toggleAbout() {
+    this.aboutOpen = !this.aboutOpen
   },
 })
 

@@ -1,17 +1,5 @@
 import L from 'leaflet'
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-
-// Leaflet sempre concatena um "imagePath" auto-detectado (via <link href="leaflet.css">)
-// na frente da URL do ícone — quebra ao empacotar via Vite (CSS é inlined, sem link tag).
-// `delete _getIconUrl` remove esse comportamento e faz usar iconUrl/shadowUrl diretamente.
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-})
+import { createNivelIcon } from './flood-marker-icon'
 
 function toNumber(v) {
     const n = Number(v)
@@ -109,7 +97,9 @@ function toNumber(v) {
 
         bounds.push([lat, lng])
 
-        L.marker([lat, lng]).addTo(markersLayer).bindPopup(buildPopup(p))
+        L.marker([lat, lng], { icon: createNivelIcon(p.nivel) })
+          .addTo(markersLayer)
+          .bindPopup(buildPopup(p))
       }
 
       // enquadra

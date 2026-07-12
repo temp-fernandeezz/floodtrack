@@ -16,8 +16,10 @@ class FloodStatsWidget extends StatsOverviewWidget
     {
         $total    = FloodPoint::count();
         $ativos   = FloodPoint::where('status', 'ativo')->count();
-        $pending  = FloodPoint::where('review_status', 'pending')->count();
         $noticias = NewsArticle::count();
+
+        $pendingNews    = FloodPoint::where('review_status', 'pending')->where('source_type', 'news')->count();
+        $pendingCitizen = FloodPoint::where('review_status', 'pending')->where('source_type', 'citizen')->count();
 
         $semCoords = FloodPoint::where(function ($q) {
             $q->whereNull('latitude')->orWhereNull('longitude')
@@ -39,14 +41,19 @@ class FloodStatsWidget extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedExclamationTriangle)
                 ->color('danger'),
 
-            Stat::make('Aguardando revisão', $pending)
-                ->description('Pontos importados pendentes')
-                ->descriptionIcon(Heroicon::OutlinedClock)
-                ->color('warning'),
+            Stat::make('Notícias pendentes', $pendingNews)
+                ->description('Importadas pelo scraper, aguardando revisão')
+                ->descriptionIcon(Heroicon::OutlinedNewspaper)
+                ->color($pendingNews > 0 ? 'warning' : 'success'),
+
+            Stat::make('Reportes cidadão pendentes', $pendingCitizen)
+                ->description('Enviados pelo formulário público')
+                ->descriptionIcon(Heroicon::OutlinedUserGroup)
+                ->color($pendingCitizen > 0 ? 'warning' : 'success'),
 
             Stat::make('Notícias processadas', $noticias)
-                ->description("{$comCoords}% com coordenadas")
-                ->descriptionIcon(Heroicon::OutlinedNewspaper)
+                ->description("{$comCoords}% dos pontos com coordenadas")
+                ->descriptionIcon(Heroicon::OutlinedGlobeAlt)
                 ->color('success'),
         ];
     }

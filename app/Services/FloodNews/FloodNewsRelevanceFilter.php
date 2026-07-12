@@ -7,7 +7,7 @@ use App\Settings\FloodTrackScraperSettings;
 /**
  * Decide se uma notícia é candidata a virar um FloodPoint: se fala de alagamento urbano
  * (e não de outro tipo de ocorrência, como afogamentos ou acidentes) e se está dentro
- * dos domínios/estados permitidos pelas configurações do scraper.
+ * dos domínios permitidos pelas configurações do scraper.
  */
 class FloodNewsRelevanceFilter
 {
@@ -46,35 +46,7 @@ class FloodNewsRelevanceFilter
     {
         $allowedDomains = $settings->allowed_domains ?? [];
 
-        if (! empty($allowedDomains) && ! $this->hostMatchesAny($url, $allowedDomains)) {
-            return false;
-        }
-
-        $states = array_values(array_filter(
-            $settings->observed_states ?? [],
-            fn ($s) => ($s['enabled'] ?? true) === true
-        ));
-
-        // Sem estados configurados → aceita tudo
-        if (empty($states)) {
-            return true;
-        }
-
-        foreach ($states as $state) {
-            $allowed = $state['allowed_patterns'] ?? [];
-            $deny    = $state['deny_patterns'] ?? [];
-
-            if ($this->urlMatchesAnyPattern($url, $deny)) {
-                continue;
-            }
-
-            // Se não há padrões permitidos, este estado aceita qualquer URL não bloqueada
-            if (empty($allowed) || $this->urlMatchesAnyPattern($url, $allowed)) {
-                return true;
-            }
-        }
-
-        return false;
+        return empty($allowedDomains) || $this->hostMatchesAny($url, $allowedDomains);
     }
 
     public function detectSource(string $url): string
@@ -125,19 +97,6 @@ class FloodNewsRelevanceFilter
             $domain = strtolower($domain);
 
             if ($host === $domain || str_ends_with($host, '.' . $domain)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function urlMatchesAnyPattern(string $url, array $patterns): bool
-    {
-        foreach ($patterns as $pattern) {
-            $pattern = is_array($pattern) ? ($pattern['pattern'] ?? ($pattern['value'] ?? null)) : $pattern;
-
-            if ($pattern && str_contains($url, $pattern)) {
                 return true;
             }
         }

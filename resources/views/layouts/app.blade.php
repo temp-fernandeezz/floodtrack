@@ -35,7 +35,7 @@
     @stack('scripts')
 </head>
 
-<body class="bg-zinc-950 text-zinc-100 antialiased">
+<body x-data class="bg-zinc-950 text-zinc-100 antialiased">
     <a href="#conteudo-principal"
         class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[999999999999] focus:rounded-xl focus:bg-violet-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">
         Pular para o conteúdo

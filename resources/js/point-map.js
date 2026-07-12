@@ -1,14 +1,5 @@
 import L from 'leaflet'
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-})
+import { createNivelIcon } from './flood-marker-icon'
 
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('point-map')
@@ -25,5 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     attribution: '&copy; OpenStreetMap',
   }).addTo(map)
 
-  L.marker([lat, lng]).addTo(map).bindPopup(el.dataset.popup || '').openPopup()
+  L.marker([lat, lng], { icon: createNivelIcon(el.dataset.nivel) })
+    .addTo(map)
+    .bindPopup(el.dataset.popup || '')
+    .openPopup()
 })

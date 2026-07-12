@@ -84,6 +84,7 @@
                 aria-label="Mapa com a localização de {{ $floodPoint->cidade }}"
                 class="h-[320px] w-full overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-800"
                 data-lat="{{ $floodPoint->latitude }}" data-lng="{{ $floodPoint->longitude }}"
+                data-nivel="{{ $floodPoint->nivel }}"
                 data-popup="{{ $floodPoint->cidade }}{{ $floodPoint->bairro ? ' — ' . $floodPoint->bairro : '' }}"></div>
         @else
             <div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-400">

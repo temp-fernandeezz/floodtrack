@@ -18,9 +18,13 @@ class FloodPointResource extends Resource
 {
     protected static ?string $model = FloodPoint::class;
 
-    protected static ?string $title = 'Configuração do Scraper';
+    protected static ?string $modelLabel = 'Ponto de alagamento';
 
-    protected static ?string $navigationLabel = 'Pontos de inundação';
+    protected static ?string $pluralModelLabel = 'Pontos de alagamento';
+
+    protected static ?string $navigationLabel = 'Pontos de alagamento';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Monitoramento';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
@@ -39,6 +43,23 @@ class FloodPointResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = static::getModel()::where('review_status', 'pending')->count();
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['cidade', 'bairro', 'descricao'];
     }
 
     public static function getPages(): array

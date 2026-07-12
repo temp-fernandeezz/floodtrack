@@ -5,6 +5,7 @@ namespace App\Filament\Resources\FloodPoints\Schemas;
 use Filament\Forms;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
 class FloodPointForm
@@ -35,11 +36,13 @@ class FloodPointForm
                         Grid::make(1)->schema([
                             Forms\Components\TextInput::make('latitude')
                                 ->numeric()
+                                ->live(onBlur: true)
                                 ->rule('between:-90,90')
                                 ->helperText('Opcional. Se vazio, o ponto fica pendente para ajuste no mapa.'),
 
                             Forms\Components\TextInput::make('longitude')
                                 ->numeric()
+                                ->live(onBlur: true)
                                 ->rule('between:-180,180')
                                 ->helperText('Opcional. Se vazio, o ponto fica pendente para ajuste no mapa.'),
                         ]),
@@ -50,6 +53,7 @@ class FloodPointForm
                     ->schema([
                         Forms\Components\Select::make('nivel')
                             ->required()
+                            ->live()
                             ->options([
                                 'baixo' => 'Baixo',
                                 'medio' => 'Médio',
@@ -102,6 +106,13 @@ class FloodPointForm
                             ->visible(fn () => self::fieldExists('source_type')),
                     ])
                     ->columns(2),
+
+                Section::make('Pré-visualização no mapa')
+                    ->description('É exatamente aqui que o ponto vai aparecer no mapa público.')
+                    ->schema([
+                        View::make('filament.forms.components.flood-point-location-preview'),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 

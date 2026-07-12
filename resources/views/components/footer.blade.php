@@ -7,7 +7,9 @@
 
         <div class="flex items-center gap-2 text-xs">
             <span class="rounded-lg bg-white/5 px-2 py-1 text-zinc-300 ring-1 ring-white/10">
-                Fernanda Fernandes
+                <a href="http://" target="_blank" rel="noopener noreferrer">
+                    Fernanda Fernandes
+                </a>
             </span>
             <span class="text-zinc-500">© {{ date('Y') }}</span>
         </div>
