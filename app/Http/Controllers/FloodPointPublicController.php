@@ -25,6 +25,9 @@ class FloodPointPublicController extends Controller
         if ($request->filled('cidade')) {
             $query->where('cidade', 'like', '%' . $request->cidade . '%');
         }
+        if ($request->filled('uf') && Schema::hasColumn('flood_points', 'uf')) {
+            $query->where('uf', strtoupper($request->uf));
+        }
         if ($request->filled('nivel')) {
             $query->where('nivel', $request->nivel);
         }
@@ -34,7 +37,13 @@ class FloodPointPublicController extends Controller
 
         $points = $query->latest('data_ocorrencia')->paginate(10)->withQueryString();
 
-        return view('pages.home', compact('points'));
+        $ufsDisponiveis = FloodPoint::whereNotNull('uf')
+            ->where('uf', '!=', '')
+            ->distinct()
+            ->orderBy('uf')
+            ->pluck('uf');
+
+        return view('pages.home', compact('points', 'ufsDisponiveis'));
     }
 
     public function stats(FloodRiskScoreService $riskScore)
@@ -75,10 +84,17 @@ class FloodPointPublicController extends Controller
             ->orderBy('dia')
             ->pluck('total', 'dia');
 
+        $ufsDisponiveis = FloodPoint::whereNotNull('uf')
+            ->where('uf', '!=', '')
+            ->distinct()
+            ->orderBy('uf')
+            ->pluck('uf');
+
         return view('pages.stats', compact(
             'total', 'comCoords', 'ativos', 'noticias',
             'porNivel', 'porUf', 'porCidade',
-            'primeira', 'ultima', 'porDia', 'rankingRisco'
+            'primeira', 'ultima', 'porDia', 'rankingRisco',
+            'ufsDisponiveis'
         ));
     }
 
@@ -105,6 +121,9 @@ class FloodPointPublicController extends Controller
 
         if ($request->filled('cidade')) {
             $query->where('cidade', 'like', '%' . $request->cidade . '%');
+        }
+        if ($request->filled('uf') && Schema::hasColumn('flood_points', 'uf')) {
+            $query->where('uf', strtoupper($request->uf));
         }
         if ($request->filled('nivel')) {
             $query->where('nivel', $request->nivel);
@@ -149,10 +168,36 @@ class FloodPointPublicController extends Controller
     }
 
     /**
+     * Lista cidades distintas com ocorrências registradas, opcionalmente filtradas por UF.
+     * Usada para alimentar a sugestão de cidades no formulário de exportação.
+     */
+    public function cidades(Request $request)
+    {
+        $query = FloodPoint::query()
+            ->whereNotNull('cidade')
+            ->where('cidade', '!=', '');
+
+        if (Schema::hasColumn('flood_points', 'review_status')) {
+            $query->where('review_status', 'approved');
+        }
+
+        if ($request->filled('uf') && Schema::hasColumn('flood_points', 'uf')) {
+            $query->where('uf', strtoupper($request->uf));
+        }
+
+        $cidades = $query->select('cidade')
+            ->distinct()
+            ->orderBy('cidade')
+            ->pluck('cidade');
+
+        return response()->json($cidades);
+    }
+
+    /**
      * Exporta o histórico completo de ocorrências (inclusive expiradas/resolvidas) em CSV.
      * Diferente do mapa "ao vivo", aqui o padrão é NÃO filtrar por status.
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): StreamedResponse|\Illuminate\Http\RedirectResponse
     {
         $query = FloodPoint::query();
 
@@ -177,6 +222,13 @@ class FloodPointPublicController extends Controller
         }
         if ($request->filled('data_fim')) {
             $query->whereDate('data_ocorrencia', '<=', $request->data_fim);
+        }
+
+        if (! $query->clone()->exists()) {
+            return redirect()->route('stats')->withInput()->with(
+                'export_error',
+                'Nenhuma ocorrência encontrada para os filtros informados. Ajuste a cidade, UF ou período e tente novamente.'
+            );
         }
 
         $filename = 'floodtrack-ocorrencias-' . now()->format('Ymd-His') . '.csv';

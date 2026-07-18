@@ -33,6 +33,14 @@ class FloodLocationParser
 
         $ai = $this->locationExtractor->extract($item->title, $item->summary);
 
+        // A IA lê o artigo inteiro e consegue distinguir um relato de alagamento real
+        // de uma notícia que só menciona a palavra de passagem (contexto histórico,
+        // outro assunto). Se ela disser que não é um caso real, não vale a pena criar
+        // um ponto — mesmo que o filtro de palavras-chave (mais grosseiro) tenha deixado passar.
+        if ($ai && $ai['ocorrencia_real'] === false) {
+            return new ExtractedLocation(null, null, $ufFromUrl ?? $ai['uf'] ?? null, $nivel, 0, ocorrenciaReal: false);
+        }
+
         if ($ai && $ai['cidade']) {
             $cidade = $ai['cidade'];
             $bairro = $ai['bairro'];
@@ -98,11 +106,43 @@ class FloodLocationParser
         $cidade = $this->cleanLocationName($cidade);
         $bairro = $this->cleanLocationName($bairro);
 
-        if ($cidade !== null && $this->isGenericLocation($cidade)) {
+        if ($cidade !== null && ($this->isGenericLocation($cidade) || $this->looksLikeDescription($cidade))) {
             $cidade = null;
         }
 
+        if ($bairro !== null && ($this->isGenericLocation($bairro) || $this->looksLikeDescription($bairro))) {
+            $bairro = null;
+        }
+
         return new ExtractedLocation($bairro, $cidade, $uf, $nivel, $confidence);
+    }
+
+    /**
+     * Um nome de lugar de verdade é curto e não tem vírgula interna. Textos longos
+     * ou com vírgula quase sempre são um trecho de frase que a extração pegou por
+     * engano (ex.: "grande volume de chuva em áreas urbanas, agravado pela..."),
+     * não um bairro ou cidade real.
+     */
+    private function looksLikeDescription(string $value): bool
+    {
+        if (mb_strlen($value) > 60 || substr_count($value, ',') > 0) {
+            return true;
+        }
+
+        $descriptionWords = [
+            'sistemas', 'drenagem', 'obstrução', 'volume', 'casos',
+            'municípios', 'posição', 'consecutivo', 'pontuação',
+        ];
+
+        $lower = mb_strtolower($value);
+
+        foreach ($descriptionWords as $word) {
+            if (str_contains($lower, $word)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function inferUfFromG1Url(string $url): ?string

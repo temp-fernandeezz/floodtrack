@@ -16,15 +16,32 @@
                 </p>
             </div>
 
+             <!-- Chuva na região (aparece só quando a OpenWeatherMap está configurada) -->
+            <div id="rain-widget" role="status" class="hidden items-center gap-2 rounded-2xl bg-zinc-900 px-4 py-2 text-sm text-zinc-300 shadow-sm ring-1 ring-zinc-800">
+                🌧️ Chuva recente: <b id="rain-widget-mm" class="text-zinc-100"></b>
+                <span class="text-zinc-500" id="rain-widget-local"></span>
+            </div>
+
             <!-- Filtros -->
             <form @submit.prevent="applyFilters()" class="grid gap-3 rounded-2xl bg-zinc-900 p-4 shadow-sm ring-1 ring-zinc-800 md:grid-cols-12">
-                <div class="md:col-span-5">
+                <div class="md:col-span-4">
                     <label for="filtro-cidade" class="mb-1 block pl-0.75 text-xs font-medium text-zinc-400">Cidade</label>
                     <input id="filtro-cidade" x-model="filters.cidade" type="text" placeholder="Ex.: São José dos Campos"
                         class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
                 </div>
 
-                <div class="md:col-span-3">
+                <div class="md:col-span-2">
+                    <label for="filtro-uf" class="mb-1 block text-xs pl-0.75 font-medium text-zinc-400">Estado</label>
+                    <select id="filtro-uf" x-model="filters.uf"
+                        class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                        <option value="">Todos</option>
+                        @foreach($ufsDisponiveis as $ufOption)
+                            <option value="{{ $ufOption }}">{{ $ufOption }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="md:col-span-2">
                     <label for="filtro-nivel" class="mb-1 block text-xs pl-0.75 font-medium text-zinc-400">Nível</label>
                     <select id="filtro-nivel" x-model="filters.nivel"
                         class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
@@ -47,12 +64,12 @@
 
                 <div class="flex items-end gap-2 md:col-span-2">
                     <button type="submit"
-                        class="w-full rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900">
+                        class="w-full hover:cursor-pointer rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900">
                         Aplicar
                     </button>
 
                     <button type="button" @click="resetFilters()"
-                        class="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+                        class="rounded-xl hover:cursor-pointer border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
                         title="Limpar">
                         Limpar
                     </button>
@@ -77,10 +94,24 @@
                 </div>
             </form>
 
-            <!-- Chuva na região (aparece só quando a OpenWeatherMap está configurada) -->
-            <div id="rain-widget" role="status" class="hidden items-center gap-2 rounded-2xl bg-zinc-900 px-4 py-2 text-sm text-zinc-300 shadow-sm ring-1 ring-zinc-800">
-                🌧️ Chuva recente: <b id="rain-widget-mm" class="text-zinc-100"></b>
-                <span class="text-zinc-500" id="rain-widget-local"></span>
+            <!-- Sem resultados para o filtro aplicado -->
+            <div x-show="noResults" x-cloak x-transition role="status"
+                class="flex items-start gap-3 rounded-2xl border border-amber-800 bg-amber-950 p-4 text-sm text-amber-300">
+                <span class="text-lg leading-none" aria-hidden="true">⚠️</span>
+                <div>
+                    <p class="font-semibold">Nenhuma ocorrência encontrada</p>
+                    <p class="mt-0.5 text-amber-300/80">Tente outra cidade ou estado, ou limpe os filtros para ver todas as ocorrências ativas.</p>
+                </div>
+            </div>
+
+            <!-- Resultados encontrados para o filtro aplicado -->
+            <div x-show="foundResults" x-cloak x-transition role="status"
+                class="flex items-start gap-3 rounded-2xl border border-emerald-800 bg-emerald-950 p-4 text-sm text-emerald-300">
+                <span class="text-lg leading-none" aria-hidden="true">✅</span>
+                <div>
+                    <p class="font-semibold" x-text="`${foundCount} ocorrência${foundCount === 1 ? '' : 's'} encontrada${foundCount === 1 ? '' : 's'}`"></p>
+                    <p class="mt-0.5 text-emerald-300/80">Confira os marcadores destacados no mapa abaixo.</p>
+                </div>
             </div>
 
             <!-- Mapa -->

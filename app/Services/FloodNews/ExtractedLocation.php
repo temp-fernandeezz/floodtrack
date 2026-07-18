@@ -13,11 +13,17 @@ final class ExtractedLocation
         public readonly ?string $uf,
         public readonly string $nivel,
         public readonly int $confidence,
+        public readonly bool $ocorrenciaReal = true,
     ) {
     }
 
     public function hasIdentifiableCity(): bool
     {
         return $this->cidade !== null;
+    }
+
+    public function isRelevantOccurrence(): bool
+    {
+        return $this->ocorrenciaReal;
     }
 }

@@ -20,5 +20,6 @@ Route::post('/reportar', [FloodReportController::class, 'store'])
 Route::get('/api/flood-points', [FloodPointPublicController::class, 'api'])->name('flood-points.api');
 Route::get('/api/flood-points/pending', [FloodPointPublicController::class, 'apiPending'])
     ->name('flood-points.apiPending');
+Route::get('/api/cidades', [FloodPointPublicController::class, 'cidades'])->name('flood-points.cidades');
 Route::get('/api/chuva', [RainfallController::class, 'show'])->name('rainfall.show');
 

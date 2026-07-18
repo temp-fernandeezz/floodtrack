@@ -80,6 +80,9 @@ function toNumber(v) {
 
     async function render(filters = {}) {
       const url = buildUrl(baseApiUrl, filters)
+      const hasFilters = Object.values(filters).some(
+        (v) => v !== null && v !== undefined && String(v).trim() !== ''
+      )
 
       // limpa markers
       markersLayer.clearLayers()
@@ -102,12 +105,20 @@ function toNumber(v) {
           .bindPopup(buildPopup(p))
       }
 
+      window.dispatchEvent(new CustomEvent('flood:results', {
+        detail: { count: points.length, withMarkers: bounds.length, hasFilters },
+      }))
+
       // enquadra
       if (bounds.length > 0) {
         map.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 })
-      } else {
+      } else if (!hasFilters) {
+        // sem filtro nenhum e sem pontos: mostra a visão padrão (estado inicial)
         map.setView([defaultLat, defaultLng], defaultZoom)
       }
+      // com filtro ativo e zero resultados: mantém a posição atual do mapa —
+      // pular pro centro padrão dava a falsa impressão de ter "achado" um lugar
+      // (ex.: buscar "Roraima" caía perto de São José dos Campos, sem nenhum marcador)
     }
 
     // primeira renderização

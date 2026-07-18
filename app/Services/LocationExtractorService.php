@@ -17,6 +17,11 @@ class LocationExtractorService
 Você extrai localização de notícias de alagamento no Brasil. Responda APENAS com JSON.
 
 Campos:
+- ocorrencia_real: true/false — a notícia está relatando um alagamento/enchente/inundação
+  ACONTECENDO ou que ACONTECEU num lugar específico? false se a notícia é sobre outro
+  assunto (política, esporte, turismo, crime, animais, obras, previsão do tempo genérica
+  sem relato de um alagamento de fato) mesmo que mencione a palavra "alagamento" ou
+  "enchente" de passagem ou como contexto histórico.
 - cidade: nome do município brasileiro. Ex: "Manaus", "São Paulo", "Boa Vista". MÁXIMO 4 palavras.
 - bairro: nome do bairro ou rua. Ex: "Centro", "Jardim América", "Av. Brasil". MÁXIMO 4 palavras.
 - uf: sigla do estado, 2 letras maiúsculas. Ex: "AM", "SP", "RR".
@@ -27,12 +32,18 @@ REGRAS CRÍTICAS para cidade e bairro:
 - ERRADO: "grande volume de chuva em áreas urbanas" → use null
 - ERRADO: "alguns casos" → use null
 - ERRADO: "comunidades ribeirinhas" → use null
+- ERRADO: "não identificada", "protesto", "campo", "caso de emergência" → use null
 - CERTO: "Boa Vista", "Centro", "Rio Branco"
 - Se não encontrar um nome de município real, use null
 - Não copie trechos da notícia como se fossem nomes de lugares
 
+Exemplos de ocorrencia_real=false: notícia sobre um governador discutindo com manifestantes
+numa barragem; lei municipal sobre outro assunto; vídeo de um animal numa rodovia; ranking
+de qualidade de vida; previsão de tempo sem relato de alagamento já ocorrido; matéria de
+turismo ou esporte que só cita uma enchente antiga como contexto biográfico.
+
 Formato obrigatório (sem texto fora do JSON):
-{"cidade": "...", "bairro": "...", "uf": "...", "nivel": "..."}
+{"ocorrencia_real": true, "cidade": "...", "bairro": "...", "uf": "...", "nivel": "..."}
 PROMPT;
 
     public function isConfigured(): bool
@@ -87,7 +98,7 @@ PROMPT;
                 return null;
             }
 
-            $decoded = json_decode(trim($text), true);
+            $decoded = json_decode($this->stripCodeFences($text), true);
 
             if (! is_array($decoded)) {
                 Log::warning('Anthropic retornou JSON inválido', ['text' => $text]);
@@ -98,6 +109,7 @@ PROMPT;
             $nivel = $decoded['nivel'] ?? null;
 
             return [
+                'ocorrencia_real' => (bool) ($decoded['ocorrencia_real'] ?? true),
                 'cidade' => $this->normalizeString($decoded['cidade'] ?? null),
                 'bairro' => $this->normalizeString($decoded['bairro'] ?? null),
                 'uf'     => $this->normalizeUf($decoded['uf'] ?? null),
@@ -109,6 +121,19 @@ PROMPT;
 
             return null;
         }
+    }
+
+    /**
+     * O modelo às vezes responde com o JSON envolto em ```json ... ``` (markdown),
+     * o que quebra o json_decode silenciosamente. Remove esse invólucro antes de parsear.
+     */
+    private function stripCodeFences(string $text): string
+    {
+        $text = trim($text);
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/', '', $text);
+
+        return trim($text);
     }
 
     private function normalizeString(?string $value): ?string

@@ -250,17 +250,36 @@
             Baixe o histórico completo de ocorrências (inclusive as já resolvidas/expiradas do mapa) em CSV, com filtros opcionais.
         </p>
 
-        <form method="GET" action="{{ route('flood-points.export') }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        @if(session('export_error'))
+            <div class="mb-4 rounded-2xl border border-red-800 bg-red-950 p-4 text-sm text-red-300" role="alert">
+                {{ session('export_error') }}
+            </div>
+        @endif
+
+        <form method="GET" action="{{ route('flood-points.export') }}" x-data="exportForm('{{ route('flood-points.cidades') }}', '{{ old('uf') }}')"
+            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div class="lg:col-span-2">
                 <label for="export-cidade" class="mb-1 block text-xs font-medium text-zinc-400">Cidade</label>
-                <input id="export-cidade" type="text" name="cidade" placeholder="Ex.: Campinas"
+                <input id="export-cidade" type="text" name="cidade" list="export-cidades-list" value="{{ old('cidade') }}"
+                    placeholder="Ex.: Campinas" autocomplete="off" x-model="cidade"
                     class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
+                <datalist id="export-cidades-list">
+                    <template x-for="c in cidades" :key="c">
+                        <option :value="c"></option>
+                    </template>
+                </datalist>
+                <p class="mt-1 text-xs text-zinc-500" x-show="loadingCidades">Carregando cidades…</p>
             </div>
 
             <div>
                 <label for="export-uf" class="mb-1 block text-xs font-medium text-zinc-400">UF</label>
-                <input id="export-uf" type="text" name="uf" maxlength="2" placeholder="SP"
-                    class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
+                <select id="export-uf" name="uf" x-model="uf" @change="carregarCidades()"
+                    class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                    <option value="">Todas</option>
+                    @foreach($ufsDisponiveis as $ufOption)
+                        <option value="{{ $ufOption }}" @selected(old('uf') === $ufOption)>{{ $ufOption }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div>
@@ -268,21 +287,21 @@
                 <select id="export-nivel" name="nivel"
                     class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
                     <option value="">Todos</option>
-                    <option value="baixo">Baixo</option>
-                    <option value="medio">Médio</option>
-                    <option value="alto">Alto</option>
+                    <option value="baixo" @selected(old('nivel') === 'baixo')>Baixo</option>
+                    <option value="medio" @selected(old('nivel') === 'medio')>Médio</option>
+                    <option value="alto" @selected(old('nivel') === 'alto')>Alto</option>
                 </select>
             </div>
 
             <div>
                 <label for="export-data-inicio" class="mb-1 block text-xs font-medium text-zinc-400">De</label>
-                <input id="export-data-inicio" type="date" name="data_inicio"
+                <input id="export-data-inicio" type="date" name="data_inicio" value="{{ old('data_inicio') }}"
                     class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
             </div>
 
             <div>
                 <label for="export-data-fim" class="mb-1 block text-xs font-medium text-zinc-400">Até</label>
-                <input id="export-data-fim" type="date" name="data_fim"
+                <input id="export-data-fim" type="date" name="data_fim" value="{{ old('data_fim') }}"
                     class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-violet-400" />
             </div>
 

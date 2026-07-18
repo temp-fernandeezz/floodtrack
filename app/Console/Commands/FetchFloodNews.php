@@ -66,6 +66,15 @@ class FetchFloodNews extends Command
 
                 $location = $locationParser->extract($item);
 
+                if (! $location->isRelevantOccurrence()) {
+                    $article->update([
+                        'discard_reason' => 'A IA julgou que a notícia não relata uma ocorrência real de alagamento (menciona a palavra de passagem, mas trata de outro assunto).',
+                        'discarded_at'   => now(),
+                    ]);
+                    $this->warn("Descartado (IA julgou não ser uma ocorrência real): {$item->title}");
+                    continue;
+                }
+
                 if (! $location->hasIdentifiableCity()) {
                     $this->warn("Sem cidade identificável: {$item->title}");
                 }

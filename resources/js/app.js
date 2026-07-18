@@ -6,8 +6,27 @@ window.Alpine = Alpine
 
 window.floodHome = function () {
   return {
-    filters: { cidade: '', nivel: '', status: '' },
+    filters: { cidade: '', uf: '', nivel: '', status: '' },
     statusText: 'Pronto para filtrar.',
+    noResults: false,
+    foundResults: false,
+    foundCount: 0,
+
+    init() {
+      window.addEventListener('flood:results', (e) => {
+        const { count, hasFilters } = e.detail || {}
+
+        this.noResults = !!hasFilters && count === 0
+        this.foundResults = !!hasFilters && count > 0
+        this.foundCount = count || 0
+
+        if (!hasFilters) {
+          this.statusText = count ? `${count} ocorrência(s) no mapa.` : 'Nenhuma ocorrência ativa no momento.'
+        } else {
+          this.statusText = ''
+        }
+      })
+    },
 
     applyFilters() {
       window.dispatchEvent(new CustomEvent('flood:filters', {
@@ -16,7 +35,7 @@ window.floodHome = function () {
     },
 
     resetFilters() {
-      this.filters = { cidade: '', nivel: '', status: '' }
+      this.filters = { cidade: '', uf: '', nivel: '', status: '' }
       this.applyFilters()
     },
   }
@@ -86,6 +105,31 @@ Alpine.data('pendingSwiper', (apiUrl) => ({
     },
   }))
 
+
+Alpine.data('exportForm', (citiesUrl, initialUf) => ({
+  uf: initialUf || '',
+  cidade: '',
+  cidades: [],
+  loadingCidades: false,
+
+  init() {
+    this.carregarCidades()
+  },
+
+  async carregarCidades() {
+    this.loadingCidades = true
+    try {
+      const url = this.uf ? `${citiesUrl}?uf=${encodeURIComponent(this.uf)}` : citiesUrl
+      const res = await fetch(url, { headers: { Accept: 'application/json' } })
+      this.cidades = res.ok ? await res.json() : []
+    } catch (e) {
+      console.error(e)
+      this.cidades = []
+    } finally {
+      this.loadingCidades = false
+    }
+  },
+}))
 
 Alpine.data('floodReport', () => ({
   latitude: '',
